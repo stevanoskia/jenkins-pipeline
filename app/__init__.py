@@ -39,4 +39,13 @@ def create_app() -> Flask:
             return jsonify(error="query parameters a and b must be numbers"), 400
         return jsonify(result=a + b)
 
+    @app.get("/multiply")
+    def multiply():
+        try:
+            a = float(request.args["a"])
+            b = float(request.args["b"])
+        except (KeyError, ValueError):
+            return jsonify(error="query parameters a and b must be numbers"), 400
+        return jsonify(result=a * b)
+
     return app

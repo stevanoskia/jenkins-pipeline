@@ -13,6 +13,7 @@ staging → approval → prod, and automatic rollback.
 | `GET /health` | `{"status": "ok"}` (used by the Docker health check and smoke tests) |
 | `GET /version` | app version + git commit the image was built from |
 | `GET /add?a=2&b=3` | `{"result": 5.0}` |
+| `GET /multiply?a=2&b=3` | `{"result": 6.0}` |
 
 ## Run it locally
 

@@ -44,3 +44,15 @@ def test_add(client, a, b, expected):
 @pytest.mark.parametrize("query", ["", "?a=1", "?a=x&b=2"])
 def test_add_bad_input(client, query):
     assert client.get(f"/add{query}").status_code == 400
+
+
+@pytest.mark.parametrize(("a", "b", "expected"), [("2", "3", 5.0), ("-2", "1.5", -3.0)])
+def test_multiply(client, a, b, expected):
+    resp = client.get(f"/multiply?a={a}&b={b}")
+    assert resp.status_code == 200
+    assert resp.get_json() == {"result": expected}
+
+
+@pytest.mark.parametrize("query", ["", "?b=1", "?a=1&b=y"])
+def test_multiply_bad_input(client, query):
+    assert client.get(f"/multiply{query}").status_code == 400
