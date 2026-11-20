@@ -37,8 +37,11 @@ Defined in [`Jenkinsfile`](Jenkinsfile), run by a Jenkins Multibranch Pipeline.
 | Prepare | all branches + PRs | computes the image tag `<version>-<build>-<short sha>` |
 | Test | all branches + PRs | `docker build --target test`, runs ruff + pytest, publishes the JUnit report |
 | Build image | all branches + PRs | `docker build --target runtime` |
+| Push | `main` | logs in to Docker Hub with a token (isolated per-build docker config), pushes the image, records its **digest** |
+| Deploy staging | `main` | [`scripts/deploy.ps1`](scripts/deploy.ps1): runs the image **by digest** as `jp-staging` on `127.0.0.1:8091`, waits for the container health check, smoke-tests `/health` + `/version` (must report the built commit), rolls back to the previous image on failure |
 
-More stages (push to Docker Hub, deploy to staging, approval, prod, rollback) are added step by step.
+Branch and PR builds stop after "Build image" (their images are removed again); only `main` is released.
+More stages (approval, prod) are added step by step.
 
 ### Triggers
 

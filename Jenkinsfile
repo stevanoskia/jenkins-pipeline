@@ -1,7 +1,10 @@
 // CI/CD pipeline for jenkins-pipeline.
 // Runs on a Windows Jenkins controller that has Docker Desktop, so steps use `bat`
-// (one docker command per step: each step fails on that command's exit code).
-// Current stage set: CI only (test + build image). CD stages are added later via a PR.
+// (one docker command per step: each step fails on that command's exit code) and
+// `powershell` for the deploy script.
+//
+// All branches + PRs: Prepare -> Test -> Build image          (CI)
+// main only:          Push -> Deploy staging                  (CD)
 
 pipeline {
     agent any
@@ -31,8 +34,17 @@ pipeline {
                     // BUILD_TAG can contain characters Docker does not allow (e.g. %2F from branch names)
                     env.RUN_ID      = env.BUILD_TAG.toLowerCase().replaceAll('[^a-z0-9_.-]', '-')
                     env.TEST_IMAGE  = "jenkins-pipeline-test:${env.RUN_ID}"
+                    // Own docker config per build: the Docker Hub login below never touches the
+                    // user's Docker Desktop login, and it is deleted after the build.
+                    env.DOCKER_CONFIG = "${env.WORKSPACE}\\.docker-ci"
                     currentBuild.description = "${env.IMAGE_NAME}:${env.IMAGE_TAG}"
                 }
+                // The isolated config still needs Docker Desktop's CLI plugins (buildx).
+                powershell '''
+                    New-Item -ItemType Directory -Force $env:DOCKER_CONFIG | Out-Null
+                    $cfg = @{ cliPluginsExtraDirs = @("$env:USERPROFILE\\.docker\\cli-plugins") } | ConvertTo-Json
+                    [IO.File]::WriteAllText("$env:DOCKER_CONFIG\\config.json", $cfg)
+                '''
                 echo "Branch ${env.BRANCH_NAME}, commit ${env.SHORT_SHA}, image tag ${env.IMAGE_TAG}"
             }
         }
@@ -64,12 +76,47 @@ pipeline {
                 bat 'docker build --target runtime --build-arg APP_VERSION=%APP_VERSION% --build-arg GIT_SHA=%GIT_COMMIT% -t %IMAGE_NAME%:%IMAGE_TAG% .'
             }
         }
+
+        stage('Push') {
+            when { branch 'main' }
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub',
+                                                  usernameVariable: 'DH_USER',
+                                                  passwordVariable: 'DH_TOKEN')]) {
+                    // single quotes: the shell expands the secret, Groovy never sees it
+                    powershell '$env:DH_TOKEN | docker login --username $env:DH_USER --password-stdin; exit $LASTEXITCODE'
+                }
+                bat 'docker push %IMAGE_NAME%:%IMAGE_TAG%'
+                script {
+                    // The digest (sha256:...) identifies exactly these image bytes; tags can be moved, digests cannot.
+                    env.IMAGE_REF = bat(returnStdout: true,
+                                        script: '@docker inspect --format "{{index .RepoDigests 0}}" %IMAGE_NAME%:%IMAGE_TAG%').trim()
+                    currentBuild.description = "${env.IMAGE_TAG} | ${env.IMAGE_REF}"
+                }
+                echo "Pushed ${env.IMAGE_REF}"
+            }
+        }
+
+        stage('Deploy staging') {
+            when { branch 'main' }
+            steps {
+                powershell '& ./scripts/deploy.ps1 -Environment staging -Port 8091 -Image $env:IMAGE_REF -ExpectedSha $env:GIT_COMMIT; exit $LASTEXITCODE'
+            }
+        }
     }
 
     post {
         always {
+            script {
+                // images from branch / PR builds are never deployed: remove them
+                if (env.BRANCH_NAME != 'main' && env.IMAGE_TAG) {
+                    bat(returnStatus: true, script: 'docker image rm %IMAGE_NAME%:%IMAGE_TAG%')
+                }
+            }
             // remove dangling layers left by rebuilds
             bat(returnStatus: true, script: 'docker image prune -f')
+            // delete the per-build docker config (contains the Docker Hub login after Push)
+            bat(returnStatus: true, script: 'if exist "%DOCKER_CONFIG%" rmdir /s /q "%DOCKER_CONFIG%"')
         }
     }
 }
