@@ -1,0 +1,15 @@
+# local only (plan + Claude settings, never pushed)
+CLAUDE.md
+.claude/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+
+# pipeline output
+reports/
+dist/

@@ -1,0 +1,15 @@
+.git
+.gitignore
+.gitattributes
+.claude
+CLAUDE.md
+.venv
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.ruff_cache
+.coverage
+reports
+Jenkinsfile
+scripts
+README.md
