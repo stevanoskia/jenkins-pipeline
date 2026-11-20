@@ -10,6 +10,7 @@ CLAUDE.md
 .ruff_cache
 .coverage
 reports
+.docker-ci
 Jenkinsfile
 scripts
 README.md
