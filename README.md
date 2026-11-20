@@ -39,6 +39,17 @@ Defined in [`Jenkinsfile`](Jenkinsfile), run by a Jenkins Multibranch Pipeline.
 
 More stages (push to Docker Hub, deploy to staging, approval, prod, rollback) are added step by step.
 
+### Triggers
+
+Jenkins runs only on the local machine (127.0.0.1), so GitHub cannot call it directly. Webhooks are relayed:
+
+```
+GitHub webhook (push, pull_request) → smee.io channel → gosmee client (local) → Jenkins /github-webhook/
+```
+
+The webhook is signed with a shared secret (HMAC); Jenkins rejects events without a valid signature.
+A periodic branch scan (every hour) is the fallback if the relay is down.
+
 ## Branching
 
 Trunk-based: `main` is the only long-lived branch and the only one that deploys.
