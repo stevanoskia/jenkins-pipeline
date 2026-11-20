@@ -83,8 +83,11 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub',
                                                   usernameVariable: 'DH_USER',
                                                   passwordVariable: 'DH_TOKEN')]) {
-                    // single quotes: the shell expands the secret, Groovy never sees it
-                    powershell '$env:DH_TOKEN | docker login --username $env:DH_USER --password-stdin; exit $LASTEXITCODE'
+                    // Single quotes: cmd expands the secret, Groovy never sees it. '@' stops cmd from
+                    // echoing the expanded command line. Not `powershell`: Jenkins' PowerShell wrapper sets
+                    // [Console]::InputEncoding to UTF-8 with BOM, so Windows PowerShell 5.1 would send
+                    // EF BB BF in front of the token -> "unauthorized: incorrect username or password".
+                    bat '@echo %DH_TOKEN%| docker login --username %DH_USER% --password-stdin'
                 }
                 bat 'docker push %IMAGE_NAME%:%IMAGE_TAG%'
                 script {
