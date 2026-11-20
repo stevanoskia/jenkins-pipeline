@@ -46,7 +46,7 @@ def test_add_bad_input(client, query):
     assert client.get(f"/add{query}").status_code == 400
 
 
-@pytest.mark.parametrize(("a", "b", "expected"), [("2", "3", 5.0), ("-2", "1.5", -3.0)])
+@pytest.mark.parametrize(("a", "b", "expected"), [("2", "3", 6.0), ("-2", "1.5", -3.0)])
 def test_multiply(client, a, b, expected):
     resp = client.get(f"/multiply?a={a}&b={b}")
     assert resp.status_code == 200
