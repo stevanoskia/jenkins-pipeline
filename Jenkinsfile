@@ -14,7 +14,11 @@ pipeline {
     }
 
     environment {
-        IMAGE_NAME = 'andrejstev/jenkins-pipeline'
+        IMAGE_NAME  = 'andrejstev/jenkins-pipeline'
+        // Talk to the Docker Desktop engine directly. Without this the docker CLI reads the
+        // user's context files (~/.docker/contexts), which Docker Desktop sometimes locks
+        // ("being used by another process") and the build fails at random.
+        DOCKER_HOST = 'npipe:////./pipe/dockerDesktopLinuxEngine'
     }
 
     stages {
