@@ -39,9 +39,10 @@ Defined in [`Jenkinsfile`](Jenkinsfile), run by a Jenkins Multibranch Pipeline.
 | Build image | all branches + PRs | `docker build --target runtime` |
 | Push | `main` | logs in to Docker Hub with a token (isolated per-build docker config), pushes the image, records its **digest** |
 | Deploy staging | `main` | [`scripts/deploy.ps1`](scripts/deploy.ps1): runs the image **by digest** as `jp-staging` on `127.0.0.1:8091`, waits for the container health check, smoke-tests `/health` + `/version` (must report the built commit), rolls back to the previous image on failure |
+| Approve prod | `main` | manual approval in Jenkins (15 min); no executor is held while waiting; reject or timeout aborts the build and leaves prod unchanged |
+| Deploy prod | `main` | pulls the **same digest** and runs it as `jp-prod` on `127.0.0.1:8092`, with the same health check, smoke test and rollback as staging |
 
 Branch and PR builds stop after "Build image" (their images are removed again); only `main` is released.
-More stages (approval, prod) are added step by step.
 
 ### Triggers
 
