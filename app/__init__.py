@@ -9,7 +9,7 @@ import os
 from flask import Flask, jsonify, request
 
 
-def build_app() -> Flask:
+def create_app() -> Flask:
     app = Flask(__name__)
 
     @app.get("/")
