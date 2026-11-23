@@ -1,11 +1,11 @@
 import pytest
 
-from app import create_app
+from app import build_app
 
 
 @pytest.fixture
 def client():
-    app = create_app()
+    app = build_app()
     app.config["TESTING"] = True
     return app.test_client()
 
